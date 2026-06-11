@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from stellar_sdk import TransactionEnvelope
 
-from app.core.auth import require_client
+from app.core.auth import require_client, require_client_or_artisan
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.booking import Booking
@@ -172,7 +172,26 @@ def submit(
 
 
 @router.post("/release", summary="Release escrow to artisan")
-def release(req: ReleaseRequest, db: Session = Depends(get_db)):
+def release(
+    req: ReleaseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_client),
+):
+    try:
+        booking_uuid = uuid.UUID(str(req.booking_id))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Booking not found") from None
+
+    booking = db.query(Booking).filter(Booking.id == booking_uuid).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking.client.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to release payment for this booking",
+        )
+
     res = release_payment(db, req.booking_id, req.artisan_public, req.amount)
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))
@@ -180,7 +199,32 @@ def release(req: ReleaseRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/refund", summary="Refund escrow to client")
-def refund(req: RefundRequest, db: Session = Depends(get_db)):
+def refund(
+    req: RefundRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_client_or_artisan),
+):
+    try:
+        booking_uuid = uuid.UUID(str(req.booking_id))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Booking not found") from None
+
+    booking = db.query(Booking).filter(Booking.id == booking_uuid).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    is_authorized = False
+    if current_user.role == "client" and booking.client.user_id == current_user.id:
+        is_authorized = True
+    elif current_user.role == "artisan" and booking.artisan.user_id == current_user.id:
+        is_authorized = True
+
+    if not is_authorized:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to refund payment for this booking",
+        )
+
     res = refund_payment(db, req.booking_id, req.client_public, req.amount)
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))
