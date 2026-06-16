@@ -135,7 +135,7 @@ def test_admin_can_release_payment(client, db_session):
     from app.core.security import get_password_hash
 
     from app.models.user import User
-    
+
     # Create admin user directly in DB
     admin_user = User(
         email="admin@example.com",
@@ -170,7 +170,7 @@ def test_admin_can_refund_payment(client, db_session):
     from app.core.security import get_password_hash
 
     from app.models.user import User
-    
+
     # Create admin user directly in DB
     admin_user = User(
         email="admin2@example.com",

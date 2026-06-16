@@ -6,9 +6,8 @@ def test_delete_artisan_persists_deletion(client, db_session):
     """Test that DELETE /artisans/{id} actually deletes from database."""
     from app.core.security import get_password_hash
 
-    from app.models.user import User
-
     from app.models.artisan import Artisan
+    from app.models.user import User
 
     user = User(
         email="artisan_to_delete@example.com",
@@ -99,8 +98,6 @@ def test_delete_artisan_returns_403_for_non_admin(client, db_session):
 
     from app.models.user import User
 
-    from app.models.artisan import Artisan
-
     # Create a user and artisan
     user = User(
         email="client@example.com",
@@ -129,9 +126,8 @@ def test_availability_update_persists_to_database(client, db_session):
     """Test that PUT /artisans/availability updates is_available in database."""
     from app.core.security import get_password_hash
 
-    from app.models.user import User
-
     from app.models.artisan import Artisan
+    from app.models.user import User
 
     # Create a user and artisan
     user = User(
@@ -331,9 +327,8 @@ def test_portfolio_retrieval_returns_empty_list_when_no_records(client, db_sessi
     """Test that GET /artisans/my-portfolio returns empty list when no records exist."""
     from app.core.security import get_password_hash
 
-    from app.models.user import User
-
     from app.models.artisan import Artisan
+    from app.models.user import User
 
     # Create a user and artisan with no portfolio
     user = User(
