@@ -1,9 +1,12 @@
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -12,6 +15,9 @@ from app.core.cache import cache
 from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.db.session import get_db
+
+# Rate limiting configuration
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -29,6 +35,8 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Ensure static/avatars directory exists
 static_path = os.path.join(os.getcwd(), settings.STATIC_DIR)

@@ -547,6 +547,12 @@ def delete_artisan(
     current_user: User = Depends(require_admin),
 ):
     """Delete artisan account - admin only"""
+    artisan = db.query(Artisan).filter(Artisan.id == artisan_id).first()
+    if not artisan:
+        raise HTTPException(status_code=404, detail="Artisan not found")
+
+    db.delete(artisan)
+    db.commit()
     return {
         "message": f"Artisan {artisan_id} deleted by admin {current_user.id}",
         "deleted_by": current_user.full_name,
